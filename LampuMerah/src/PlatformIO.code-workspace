@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "../../.."
+		},
+		{
+			"name": "LED-Test1",
+			"path": "../../LED-Test1"
+		},
+		{
+			"name": "CobaTrafficLight",
+			"path": "../../CobaTrafficLight"
+		},
+		{
+			"name": "LampuMerah",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}
