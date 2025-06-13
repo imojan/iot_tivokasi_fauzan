@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ESP Weather Station</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <style>
+    body {
+      min-width: 310px;
+      max-width: 800px;
+      margin: 0 auto;
+      font-family: Arial, sans-serif;
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 2rem;
+    }
+
+    .slider {
+      -webkit-appearance: none;
+      width: 360px;
+      height: 25px;
+      background: #FFD65C;
+      margin: 14px auto;
+      display: block;
+    }
+
+    .slider::-webkit-slider-thumb {
+      width: 35px;
+      height: 35px;
+      background: #003249;
+      cursor: pointer;
+    }
+
+    #textSliderValue {
+      text-align: center;
+      display: block;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    .button-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .button-container button {
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .button-container button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>ESP Weather Station</h2>
+
+  <div id="chart-temperature" class="container"></div>
+  <div id="chart-humidity" class="container"></div>
+
+  <p><span id="textSliderValue">PWM VALUE: 0</span></p>
+  <input type="range" id="pwmSlider" min="0" max="255" value="0" class="slider" onchange="updateSliderPWM(this)">
+
+  <div class="button-container">
+    <button id="toggleButton" onclick="toggleLed()">Turn ON</button>
+  </div>
+
+  <script>
+    const client = mqtt.connect('wss://test.mosquitto.org:8081');
+    let ledState = false; // false = OFF, true = ON
+
+    client.on('connect', () => {
+      console.log("MQTT connected");
+      client.subscribe('IOT/Test1/temp');
+      client.subscribe('IOT/Test1/hum');
+    });
+
+    let chartT = Highcharts.chart('chart-temperature', {
+      chart: { type: 'line' },
+      title: { text: 'DHT Temperature' },
+      xAxis: { type: 'datetime' },
+      yAxis: { title: { text: 'Temperature (°C)' } },
+      series: [{ name: 'Temp', data: [] }]
+    });
+
+    let chartH = Highcharts.chart('chart-humidity', {
+      chart: { type: 'line' },
+      title: { text: 'DHT Humidity' },
+      xAxis: { type: 'datetime' },
+      yAxis: { title: { text: 'Humidity (%)' } },
+      series: [{ name: 'Humidity', data: [] }]
+    });
+
+    client.on('message', (topic, message) => {
+      const payload = parseFloat(message.toString());
+      const time = (new Date()).getTime();
+
+      if (topic === 'IOT/Test1/temp') {
+        chartT.series[0].addPoint([time, payload], true, chartT.series[0].data.length > 40);
+      }
+
+      if (topic === 'IOT/Test1/hum') {
+        chartH.series[0].addPoint([time, payload], true, chartH.series[0].data.length > 40);
+      }
+    });
+
+    function updateSliderPWM(element) {
+      const val = element.value;
+      document.getElementById("textSliderValue").innerText = `PWM VALUE: ${val}`;
+      client.publish("IOT/Test1/pwm", val.toString());
+    }
+
+    function toggleLed() {
+      ledState = !ledState;
+      const payload = ledState ? "1" : "0";
+      client.publish("IOT/Test1/mqtt", payload);
+      document.getElementById("toggleButton").innerText = ledState ? "Turn OFF" : "Turn ON";
+    }
+  </script>
+
+</body>
+
+</html>
